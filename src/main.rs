@@ -1,5 +1,8 @@
+use std::collections::HashMap;
+
 pub struct PersonContainer {
-    people: Vec<Person>
+    people: Vec<Person>,
+    peopleMap: HashMap<u128, Person>
 }
 
 pub struct Person{
@@ -23,6 +26,13 @@ impl PersonContainer {
         }
         return None
     }
+
+    pub fn find_by_id_on_map(self, id: u128) -> Option<Person> {
+        return match self.peopleMap.get(&id) {
+            Some(person) => Some(person.clone()),
+            None => None
+        }
+    }
 }
 
 fn main() {
@@ -34,7 +44,10 @@ fn main() {
     let mut people = Vec::new();
     people.push(edison);
 
-    let container = PersonContainer{people};
+    let container = PersonContainer{
+        people,
+        peopleMap: HashMap::new()
+    };
 
     match container.find_by_id(id) {
         Some(person) => person.say_hi(),
@@ -56,7 +69,10 @@ mod tests {
         let mut people = Vec::new();
         people.push(edison);
 
-        let container = PersonContainer{people};
+        let container = PersonContainer{
+            people,
+            peopleMap: HashMap::new()
+        };
 
         let found_id = match container.find_by_id(id) {
             Some(person) => person.id,
