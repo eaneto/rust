@@ -4,7 +4,7 @@ pub struct Person {
 }
 
 pub struct PersonContainer {
-    people: Vec<Person>
+    people: Vec<Person>,
 }
 
 impl Person {
@@ -18,10 +18,10 @@ impl PersonContainer {
     pub fn find_by_id(self, id: u128) -> Option<Person> {
         for person in self.people {
             if person.id == id {
-                return Some(person)
+                return Some(person);
             }
         }
-        return None
+        return None;
     }
 }
 
@@ -40,21 +40,19 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let edison = Person{
+        let edison = Person {
             id: 123,
-            name: String::from("Edison")
+            name: String::from("Edison"),
         };
         let id = edison.id;
         let mut people = Vec::new();
         people.push(edison);
 
-        let container = PersonContainer{
-            people
-        };
+        let container = PersonContainer { people };
 
         let found_id = match container.find_by_id(id) {
             Some(person) => person.id,
-            None => panic!("fail")
+            None => panic!("fail"),
         };
         assert_eq!(found_id, id)
     }
