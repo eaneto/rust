@@ -1,13 +1,10 @@
-use std::collections::HashMap;
-
-pub struct PersonContainer {
-    people: Vec<Person>,
-    peopleMap: HashMap<u128, Person>
-}
-
-pub struct Person{
+pub struct Person {
     id: u128,
     name: String,
+}
+
+pub struct PersonContainer {
+    people: Vec<Person>
 }
 
 impl Person {
@@ -26,33 +23,15 @@ impl PersonContainer {
         }
         return None
     }
-
-    pub fn find_by_id_on_map(self, id: u128) -> Option<Person> {
-        return match self.peopleMap.get(&id) {
-            Some(person) => Some(person.clone()),
-            None => None
-        }
-    }
 }
 
-fn main() {
-    let edison = Person{
-        id: 123,
-        name: String::from("Edison")
-    };
-    let id = edison.id;
-    let mut people = Vec::new();
-    people.push(edison);
+fn main() -> std::io::Result<()> {
+    use std::fs;
 
-    let container = PersonContainer{
-        people,
-        peopleMap: HashMap::new()
-    };
+    let metadata = fs::metadata("sample.txt")?;
 
-    match container.find_by_id(id) {
-        Some(person) => person.say_hi(),
-        None => println!("not found")
-    }
+    println!("{:?}", metadata);
+    Ok(())
 }
 
 #[cfg(test)]
@@ -70,8 +49,7 @@ mod tests {
         people.push(edison);
 
         let container = PersonContainer{
-            people,
-            peopleMap: HashMap::new()
+            people
         };
 
         let found_id = match container.find_by_id(id) {
