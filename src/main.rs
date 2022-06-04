@@ -1,59 +1,36 @@
-pub struct Person {
-    id: u128,
-    name: String,
-}
+use std::{cmp::Ordering, io};
 
-pub struct PersonContainer {
-    people: Vec<Person>,
-}
+use rand::Rng;
 
-impl Person {
-    pub fn say_hi(self) {
-        println!("Hi, my name is {} my id is {}", self.name, self.id)
-    }
-}
+fn main() {
+    println!("Guessing game");
 
-impl PersonContainer {
-    // Searches for a person in the container.
-    pub fn find_by_id(self, id: u128) -> Option<Person> {
-        for person in self.people {
-            if person.id == id {
-                return Some(person);
+    let secret_number = rand::thread_rng().gen_range(1..101);
+
+    loop {
+        println!("Input the guess:");
+
+        let mut guess = String::new();
+
+        io::stdin()
+            .read_line(&mut guess)
+            // expect crashes the program with panic!
+            .expect("Failed to read line.");
+
+        let guess: u32 = match guess.trim().parse() {
+            Ok(num) => num,
+            Err(_) => continue,
+        };
+
+        println!("You guessed: {}", guess);
+
+        match guess.cmp(&secret_number) {
+            Ordering::Less => println!("Too small"),
+            Ordering::Greater => println!("Too big"),
+            Ordering::Equal => {
+                println!("You win!");
+                break;
             }
         }
-        return None;
-    }
-}
-
-fn main() -> std::io::Result<()> {
-    use std::fs;
-
-    let metadata = fs::metadata("sample.txt")?;
-
-    println!("{:?}", metadata);
-    Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let edison = Person {
-            id: 123,
-            name: String::from("Edison"),
-        };
-        let id = edison.id;
-        let mut people = Vec::new();
-        people.push(edison);
-
-        let container = PersonContainer { people };
-
-        let found_id = match container.find_by_id(id) {
-            Some(person) => person.id,
-            None => panic!("fail"),
-        };
-        assert_eq!(found_id, id)
     }
 }
