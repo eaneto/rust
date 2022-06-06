@@ -25,4 +25,14 @@ fn main() {
     let five = Some(5);
     let _six = plus_one(five);
     let _none = plus_one(None);
+
+    let config_max = Some(3u8);
+    // match config_max {
+    //     Some(max) => println!("The maximum is configured to be {}", max),
+    //     _ => (),
+    // }
+    // same as
+    if let Some(max) = config_max {
+        println!("The maximum is configured to be {}", max);
+    }
 }
