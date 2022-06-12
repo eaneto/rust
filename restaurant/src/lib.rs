@@ -1,18 +1,6 @@
-mod front_of_house {
-    pub mod hosting {
-        pub fn add_to_waitlist() {}
+mod front_of_house;
 
-        fn seat_at_table() {}
-    }
-
-    mod serving {
-        fn take_order() {}
-
-        fn serve_order() {}
-
-        fn take_payment() {}
-    }
-}
+pub use crate::front_of_house::hosting;
 
 fn deliver_order() {}
 
@@ -51,6 +39,9 @@ pub fn eat_at_restaurant() {
     // Relative path
     front_of_house::hosting::add_to_waitlist();
 
+    // Path using use
+    hosting::add_to_waitlist();
+
     // Order a breakfast in the summer with Rye toast
     let mut meal = back_of_house::Breakfast::summer("Rye");
     // Change our mind about what bread we'd like
@@ -68,11 +59,16 @@ pub fn eat_at_restaurant() {
 #[cfg(test)]
 mod tests {
     use crate::eat_at_restaurant;
+    use std::collections::HashMap;
 
     #[test]
     fn it_works() {
         eat_at_restaurant();
         let result = 2 + 2;
         assert_eq!(result, 4);
+        let mut map = HashMap::new();
+        map.insert(1, 2);
+        let key = 1;
+        assert_eq!(*map.get(&key).expect("Error"), 2);
     }
 }
