@@ -24,7 +24,13 @@ fn main() {
 fn display_directory_contents(directory: ReadDir) {
     for entry in directory {
         match entry {
-            Ok(file) => println!("{:?}", file.path()),
+            Ok(file) => {
+                let file_name = match file.file_name().into_string() {
+                    Ok(string) => string,
+                    Err(_) => continue,
+                };
+                println!("{}", file_name)
+            }
             Err(_) => panic!("Unable to read file"),
         }
     }
