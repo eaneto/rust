@@ -54,11 +54,7 @@ impl Config {
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let contents = fs::read_to_string(&config.filename)?;
 
-    let results = if config.ignore_case {
-        search_case_insensitive(&contents, config)
-    } else {
-        search(&contents, config)
-    };
+    let results = search(&contents, config);
 
     for line in results {
         println!("{}", line);
@@ -68,15 +64,6 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn search<'a>(contents: &'a str, config: Config) -> Vec<String> {
-    return contents
-        .lines()
-        .enumerate()
-        .filter(|(_, line)| matches(line, &config))
-        .map(|(number, line)| format_line(line, number, config.line_number))
-        .collect();
-}
-
-pub fn search_case_insensitive<'a>(contents: &'a str, config: Config) -> Vec<String> {
     return contents
         .lines()
         .enumerate()
@@ -192,10 +179,7 @@ Trust me.";
             line_number: false,
         };
 
-        assert_eq!(
-            vec!["Rust:", "Trust me."],
-            search_case_insensitive(contents, config)
-        );
+        assert_eq!(vec!["Rust:", "Trust me."], search(contents, config));
     }
 
     #[test]
@@ -217,7 +201,7 @@ Trust me.";
 
         assert_eq!(
             vec!["safe, fast, productive.", "Pick Three."],
-            search_case_insensitive(contents, config)
+            search(contents, config)
         );
     }
 
@@ -238,9 +222,6 @@ Trust me.";
             line_number: true,
         };
 
-        assert_eq!(
-            vec!["1:Rust:", "4:Trust me."],
-            search_case_insensitive(contents, config)
-        );
+        assert_eq!(vec!["1:Rust:", "4:Trust me."], search(contents, config));
     }
 }
