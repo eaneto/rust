@@ -46,22 +46,12 @@ impl Config {
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let contents = fs::read_to_string(config.filename)?;
+    let contents = fs::read_to_string(&config.filename)?;
 
     let results = if config.ignore_case {
-        search_case_insensitive(
-            &config.query,
-            &contents,
-            config.invert_match,
-            config.line_number,
-        )
+        search_case_insensitive(&contents, config)
     } else {
-        search(
-            &config.query,
-            &contents,
-            config.invert_match,
-            config.line_number,
-        )
+        search(&contents, config)
     };
 
     for line in results {
@@ -71,30 +61,17 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn search<'a>(
-    query: &str,
-    contents: &'a str,
-    invert_match: bool,
-    line_number: bool,
-) -> Vec<String> {
+pub fn search<'a>(contents: &'a str, config: Config) -> Vec<String> {
     let mut results = Vec::new();
 
     for (number, line) in contents.lines().enumerate() {
-        if invert_match {
-            if !line.contains(&query) {
-                if line_number {
-                    results.push(format!("{}:{}", number + 1, line));
-                } else {
-                    results.push(format!("{}", line));
-                }
+        if config.invert_match {
+            if !line.contains(&config.query) {
+                push_line(&mut results, line, config.line_number, number)
             }
         } else {
-            if line.contains(&query) {
-                if line_number {
-                    results.push(format!("{}:{}", number + 1, line));
-                } else {
-                    results.push(format!("{}", line));
-                }
+            if line.contains(&config.query) {
+                push_line(&mut results, line, config.line_number, number)
             }
         }
     }
@@ -102,36 +79,31 @@ pub fn search<'a>(
     return results;
 }
 
-pub fn search_case_insensitive<'a>(
-    query: &str,
-    contents: &'a str,
-    invert_match: bool,
-    line_number: bool,
-) -> Vec<String> {
-    let query = query.to_lowercase();
+pub fn search_case_insensitive<'a>(contents: &'a str, config: Config) -> Vec<String> {
+    let query = config.query.to_lowercase();
     let mut results = Vec::new();
 
     for (number, line) in contents.lines().enumerate() {
-        if invert_match {
+        if config.invert_match {
             if !line.to_lowercase().contains(&query) {
-                if line_number {
-                    results.push(format!("{}:{}", number + 1, line));
-                } else {
-                    results.push(format!("{}", line));
-                }
+                push_line(&mut results, line, config.line_number, number)
             }
         } else {
             if line.to_lowercase().contains(&query) {
-                if line_number {
-                    results.push(format!("{}:{}", number + 1, line));
-                } else {
-                    results.push(format!("{}", line));
-                }
+                push_line(&mut results, line, config.line_number, number)
             }
         }
     }
 
     return results;
+}
+
+fn push_line(results: &mut Vec<String>, line: &str, line_number: bool, number: usize) {
+    if line_number {
+        results.push(format!("{}:{}", number + 1, line));
+    } else {
+        results.push(format!("{}", line));
+    }
 }
 
 #[cfg(test)]
@@ -147,10 +119,15 @@ safe, fast, productive.
 Pick Three.
 Duct tape.";
 
-        assert_eq!(
-            vec!["safe, fast, productive."],
-            search(query, contents, false, false)
-        );
+        let config = Config {
+            query: query.to_string(),
+            filename: "".to_string(),
+            ignore_case: false,
+            invert_match: false,
+            line_number: false,
+        };
+
+        assert_eq!(vec!["safe, fast, productive."], search(contents, config));
     }
 
     #[test]
@@ -162,9 +139,17 @@ safe, fast, productive.
 Pick Three.
 Duct tape.";
 
+        let config = Config {
+            query: query.to_string(),
+            filename: "".to_string(),
+            ignore_case: false,
+            invert_match: true,
+            line_number: false,
+        };
+
         assert_eq!(
             vec!["Rust:", "Pick Three.", "Duct tape."],
-            search(query, contents, true, false)
+            search(contents, config)
         );
     }
 
@@ -177,10 +162,15 @@ safe, fast, productive.
 Pick Three.
 Duct tape.";
 
-        assert_eq!(
-            vec!["2:safe, fast, productive."],
-            search(query, contents, false, true)
-        );
+        let config = Config {
+            query: query.to_string(),
+            filename: "".to_string(),
+            ignore_case: false,
+            invert_match: false,
+            line_number: true,
+        };
+
+        assert_eq!(vec!["2:safe, fast, productive."], search(contents, config));
     }
 
     #[test]
@@ -192,9 +182,17 @@ safe, fast, productive.
 Pick Three.
 Trust me.";
 
+        let config = Config {
+            query: query.to_string(),
+            filename: "".to_string(),
+            ignore_case: true,
+            invert_match: false,
+            line_number: false,
+        };
+
         assert_eq!(
             vec!["Rust:", "Trust me."],
-            search_case_insensitive(query, contents, false, false)
+            search_case_insensitive(contents, config)
         );
     }
 
@@ -207,9 +205,17 @@ safe, fast, productive.
 Pick Three.
 Trust me.";
 
+        let config = Config {
+            query: query.to_string(),
+            filename: "".to_string(),
+            ignore_case: true,
+            invert_match: true,
+            line_number: false,
+        };
+
         assert_eq!(
             vec!["safe, fast, productive.", "Pick Three."],
-            search_case_insensitive(query, contents, true, false)
+            search_case_insensitive(contents, config)
         );
     }
 
@@ -222,9 +228,17 @@ safe, fast, productive.
 Pick Three.
 Trust me.";
 
+        let config = Config {
+            query: query.to_string(),
+            filename: "".to_string(),
+            ignore_case: true,
+            invert_match: false,
+            line_number: true,
+        };
+
         assert_eq!(
             vec!["1:Rust:", "4:Trust me."],
-            search_case_insensitive(query, contents, false, true)
+            search_case_insensitive(contents, config)
         );
     }
 }
