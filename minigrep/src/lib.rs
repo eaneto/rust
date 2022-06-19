@@ -1,4 +1,4 @@
-use std::{error::Error, fs};
+use std::{env, error::Error, fs};
 
 pub struct Config {
     pub query: String,
@@ -9,30 +9,36 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(args: &[String]) -> Result<Config, &'static str> {
-        if args.len() < 3 {
-            return Err("not enough arguments");
-        }
-        let query = args[1].clone();
-        let filename = args[2].clone();
+    pub fn new(mut args: env::Args) -> Result<Config, &'static str> {
+        args.next();
+        let query = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a query string"),
+        };
+        let filename = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a file name"),
+        };
 
         let mut ignore_case = false;
         let mut line_number = false;
         let mut invert_match = false;
 
-        if args.len() > 3 {
-            let options = &args[3];
-            if options.contains("i") {
-                ignore_case = true;
-            }
+        match args.next() {
+            Some(options) => {
+                if options.contains("i") {
+                    ignore_case = true;
+                }
 
-            if options.contains("n") {
-                line_number = true;
-            }
+                if options.contains("n") {
+                    line_number = true;
+                }
 
-            if options.contains("v") {
-                invert_match = true;
+                if options.contains("v") {
+                    invert_match = true;
+                }
             }
+            None => (),
         }
 
         Ok(Config {
@@ -62,47 +68,43 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn search<'a>(contents: &'a str, config: Config) -> Vec<String> {
-    let mut results = Vec::new();
-
-    for (number, line) in contents.lines().enumerate() {
-        if config.invert_match {
-            if !line.contains(&config.query) {
-                push_line(&mut results, line, config.line_number, number)
-            }
-        } else {
-            if line.contains(&config.query) {
-                push_line(&mut results, line, config.line_number, number)
-            }
-        }
-    }
-
-    return results;
+    return contents
+        .lines()
+        .enumerate()
+        .filter(|(_, line)| matches(line, &config))
+        .map(|(number, line)| format_line(line, number, config.line_number))
+        .collect();
 }
 
 pub fn search_case_insensitive<'a>(contents: &'a str, config: Config) -> Vec<String> {
-    let query = config.query.to_lowercase();
-    let mut results = Vec::new();
-
-    for (number, line) in contents.lines().enumerate() {
-        if config.invert_match {
-            if !line.to_lowercase().contains(&query) {
-                push_line(&mut results, line, config.line_number, number)
-            }
-        } else {
-            if line.to_lowercase().contains(&query) {
-                push_line(&mut results, line, config.line_number, number)
-            }
-        }
-    }
-
-    return results;
+    return contents
+        .lines()
+        .enumerate()
+        .filter(|(_, line)| matches(line, &config))
+        .map(|(number, line)| format_line(line, number, config.line_number))
+        .collect();
 }
 
-fn push_line(results: &mut Vec<String>, line: &str, line_number: bool, number: usize) {
+fn format_line(line: &str, number: usize, line_number: bool) -> String {
     if line_number {
-        results.push(format!("{}:{}", number + 1, line));
+        return format!("{}:{}", number + 1, line);
     } else {
-        results.push(format!("{}", line));
+        return format!("{}", line);
+    }
+}
+
+fn matches(line: &str, config: &Config) -> bool {
+    let (line, query) = if config.ignore_case {
+        (line.to_lowercase(), config.query.to_lowercase())
+    } else {
+        // TODO Remove clone
+        (line.to_string(), config.query.clone())
+    };
+
+    if config.invert_match {
+        return !line.contains(&query);
+    } else {
+        return line.contains(&query);
     }
 }
 
