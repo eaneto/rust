@@ -24,21 +24,18 @@ impl Config {
         let mut line_number = false;
         let mut invert_match = false;
 
-        match args.next() {
-            Some(options) => {
-                if options.contains("i") {
-                    ignore_case = true;
-                }
-
-                if options.contains("n") {
-                    line_number = true;
-                }
-
-                if options.contains("v") {
-                    invert_match = true;
-                }
+        if let Some(options) = args.next() {
+            if options.contains('i') {
+                ignore_case = true;
             }
-            None => (),
+
+            if options.contains('n') {
+                line_number = true;
+            }
+
+            if options.contains('v') {
+                invert_match = true;
+            }
         }
 
         Ok(Config {
@@ -63,7 +60,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn search<'a>(contents: &'a str, config: Config) -> Vec<String> {
+pub fn search(contents: &str, config: Config) -> Vec<String> {
     return contents
         .lines()
         .enumerate()
@@ -74,9 +71,9 @@ pub fn search<'a>(contents: &'a str, config: Config) -> Vec<String> {
 
 fn format_line(line: &str, number: usize, line_number: bool) -> String {
     if line_number {
-        return format!("{}:{}", number + 1, line);
+        format!("{}:{}", number + 1, line)
     } else {
-        return format!("{}", line);
+        line.to_string()
     }
 }
 
@@ -89,9 +86,9 @@ fn matches(line: &str, config: &Config) -> bool {
     };
 
     if config.invert_match {
-        return !line.contains(&query);
+        !line.contains(&query)
     } else {
-        return line.contains(&query);
+        line.contains(&query)
     }
 }
 
