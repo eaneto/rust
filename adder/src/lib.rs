@@ -1,3 +1,26 @@
+//! # Adder
+//!
+//! `adder` is a collection of utilities to make performing certain
+//! calculations more convenient.
+
+/// Adds two to the number given.
+///
+/// # Examples
+///
+/// ```
+/// let arg = 5;
+/// let answer = adder::add_two(arg);
+///
+/// assert_eq!(7, answer);
+/// ```
+pub fn add_two(a: i32) -> i32 {
+    internal_adder(a, 2)
+}
+
+fn internal_adder(a: i32, b: i32) -> i32 {
+    a + b
+}
+
 #[derive(PartialEq, Debug)]
 struct Rectangle {
     width: u32,
@@ -10,24 +33,16 @@ impl Rectangle {
     }
 }
 
-pub fn add_two(a: i32) -> i32 {
-    internal_adder(a, 2)
-}
-
-fn internal_adder(a: i32, b: i32) -> i32 {
-    a + b
-}
-
-pub fn greeting(name: &str) -> String {
+fn greeting(name: &str) -> String {
     format!("Hello {}!", name)
 }
 
-pub struct Guess {
+struct Guess {
     value: i32,
 }
 
 impl Guess {
-    pub fn new(value: i32) -> Guess {
+    fn new(value: i32) -> Guess {
         if value < 1 {
             panic!(
                 "Guess value must be greater than or equal to 1, got {}.",
