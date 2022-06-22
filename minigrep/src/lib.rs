@@ -6,6 +6,7 @@ pub struct Config {
     pub ignore_case: bool,
     pub invert_match: bool,
     pub line_number: bool,
+    pub count: bool,
 }
 
 impl Config {
@@ -23,6 +24,7 @@ impl Config {
         let mut ignore_case = false;
         let mut line_number = false;
         let mut invert_match = false;
+        let mut count = false;
 
         if let Some(options) = args.next() {
             if options.contains('i') {
@@ -36,6 +38,10 @@ impl Config {
             if options.contains('v') {
                 invert_match = true;
             }
+
+            if options.contains('c') {
+                count = true;
+            }
         }
 
         Ok(Config {
@@ -44,6 +50,7 @@ impl Config {
             ignore_case,
             line_number,
             invert_match,
+            count,
         })
     }
 }
@@ -51,20 +58,24 @@ impl Config {
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let contents = fs::read_to_string(&config.filename)?;
 
-    let results = search(&contents, config);
+    let results = search(&contents, &config);
 
-    for line in results {
-        println!("{}", line);
+    if config.count {
+        println!("{}", results.len());
+    } else {
+        for line in results {
+            println!("{}", line);
+        }
     }
 
     Ok(())
 }
 
-pub fn search(contents: &str, config: Config) -> Vec<String> {
+pub fn search(contents: &str, config: &Config) -> Vec<String> {
     return contents
         .lines()
         .enumerate()
-        .filter(|(_, line)| matches(line, &config))
+        .filter(|(_, line)| matches(line, config))
         .map(|(number, line)| format_line(line, number, config.line_number))
         .collect();
 }
