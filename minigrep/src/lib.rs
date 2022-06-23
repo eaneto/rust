@@ -7,6 +7,7 @@ pub struct Config {
     pub invert_match: bool,
     pub line_number: bool,
     pub count: bool,
+    pub quiet: bool,
 }
 
 impl Config {
@@ -25,6 +26,7 @@ impl Config {
         let mut line_number = false;
         let mut invert_match = false;
         let mut count = false;
+        let mut quiet = false;
 
         if let Some(options) = args.next() {
             if options.contains('i') {
@@ -42,6 +44,10 @@ impl Config {
             if options.contains('c') {
                 count = true;
             }
+
+            if options.contains('q') {
+                quiet = true;
+            }
         }
 
         Ok(Config {
@@ -51,6 +57,7 @@ impl Config {
             line_number,
             invert_match,
             count,
+            quiet,
         })
     }
 }
@@ -62,6 +69,8 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
     if config.count {
         println!("{}", results.len());
+    } else if config.quiet {
+        return Ok(());
     } else {
         for line in results {
             println!("{}", line);
