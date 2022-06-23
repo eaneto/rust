@@ -8,6 +8,7 @@ pub struct Config {
     pub line_number: bool,
     pub count: bool,
     pub quiet: bool,
+    pub with_filename: bool,
 }
 
 impl Config {
@@ -27,6 +28,7 @@ impl Config {
         let mut invert_match = false;
         let mut count = false;
         let mut quiet = false;
+        let mut with_filename = false;
 
         if let Some(options) = args.next() {
             if options.contains('i') {
@@ -48,6 +50,10 @@ impl Config {
             if options.contains('q') {
                 quiet = true;
             }
+
+            if options.contains('H') {
+                with_filename = true;
+            }
         }
 
         Ok(Config {
@@ -58,6 +64,7 @@ impl Config {
             invert_match,
             count,
             quiet,
+            with_filename,
         })
     }
 }
@@ -85,16 +92,23 @@ pub fn search(contents: &str, config: &Config) -> Vec<String> {
         .lines()
         .enumerate()
         .filter(|(_, line)| matches(line, config))
-        .map(|(number, line)| format_line(line, number, config.line_number))
+        .map(|(number, line)| format_line(line, number, config))
         .collect();
 }
 
-fn format_line(line: &str, number: usize, line_number: bool) -> String {
-    if line_number {
-        format!("{}:{}", number + 1, line)
-    } else {
-        line.to_string()
+fn format_line(line: &str, number: usize, config: &Config) -> String {
+    let mut formatted_line = String::new();
+
+    if config.with_filename {
+        formatted_line.push_str(format!("{}:", config.filename).as_str());
     }
+
+    if config.line_number {
+        formatted_line.push_str(format!("{}:", number + 1).as_str());
+    }
+
+    formatted_line.push_str(line);
+    formatted_line
 }
 
 fn matches(line: &str, config: &Config) -> bool {
@@ -131,9 +145,12 @@ Duct tape.";
             ignore_case: false,
             invert_match: false,
             line_number: false,
+            count: false,
+            quiet: false,
+            with_filename: false,
         };
 
-        assert_eq!(vec!["safe, fast, productive."], search(contents, config));
+        assert_eq!(vec!["safe, fast, productive."], search(contents, &config));
     }
 
     #[test]
@@ -151,11 +168,14 @@ Duct tape.";
             ignore_case: false,
             invert_match: true,
             line_number: false,
+            count: false,
+            quiet: false,
+            with_filename: false,
         };
 
         assert_eq!(
             vec!["Rust:", "Pick Three.", "Duct tape."],
-            search(contents, config)
+            search(contents, &config)
         );
     }
 
@@ -174,9 +194,12 @@ Duct tape.";
             ignore_case: false,
             invert_match: false,
             line_number: true,
+            count: false,
+            quiet: false,
+            with_filename: false,
         };
 
-        assert_eq!(vec!["2:safe, fast, productive."], search(contents, config));
+        assert_eq!(vec!["2:safe, fast, productive."], search(contents, &config));
     }
 
     #[test]
@@ -194,9 +217,12 @@ Trust me.";
             ignore_case: true,
             invert_match: false,
             line_number: false,
+            count: false,
+            quiet: false,
+            with_filename: false,
         };
 
-        assert_eq!(vec!["Rust:", "Trust me."], search(contents, config));
+        assert_eq!(vec!["Rust:", "Trust me."], search(contents, &config));
     }
 
     #[test]
@@ -214,11 +240,14 @@ Trust me.";
             ignore_case: true,
             invert_match: true,
             line_number: false,
+            count: false,
+            quiet: false,
+            with_filename: false,
         };
 
         assert_eq!(
             vec!["safe, fast, productive.", "Pick Three."],
-            search(contents, config)
+            search(contents, &config)
         );
     }
 
@@ -237,8 +266,11 @@ Trust me.";
             ignore_case: true,
             invert_match: false,
             line_number: true,
+            count: false,
+            quiet: false,
+            with_filename: false,
         };
 
-        assert_eq!(vec!["1:Rust:", "4:Trust me."], search(contents, config));
+        assert_eq!(vec!["1:Rust:", "4:Trust me."], search(contents, &config));
     }
 }
