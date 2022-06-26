@@ -11,7 +11,7 @@ fn main() {
         }
     };
 
-    if let Err(e) = huffman::run(filename) {
+    if let Err(e) = huffman::run(&filename) {
         eprintln!("Application error: {}", e);
         process::exit(1);
     }

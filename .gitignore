@@ -10,3 +10,5 @@ Cargo.lock
 **/*.rs.bk
 sample.txt
 test.txt
+test2.txt
+*.huff
