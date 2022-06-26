@@ -41,6 +41,16 @@ pub fn run(filename: String) -> Result<(), Box<dyn Error>> {
             let right = nodes.remove(0);
             let weight = left.weight + right.weight;
 
+            println!("weight: {}", weight);
+            println!("left left: {}", left.weight);
+            if let Some(c) = left.character {
+                println!("left: {}", c);
+            }
+            println!("right left: {}", right.weight);
+            if let Some(c) = right.character {
+                println!("right: {}", c);
+            }
+
             let left = Some(Box::new(left));
             let right = Some(Box::new(right));
             let root = Node {
@@ -53,8 +63,8 @@ pub fn run(filename: String) -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let root = &nodes[0];
-    check_tree(root);
+    //let root = &nodes[0];
+    //check_tree(root);
 
     Ok(())
 }
