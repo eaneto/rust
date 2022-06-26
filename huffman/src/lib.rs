@@ -42,11 +42,11 @@ pub fn run(filename: String) -> Result<(), Box<dyn Error>> {
             let weight = left.weight + right.weight;
 
             println!("weight: {}", weight);
-            println!("left left: {}", left.weight);
+            println!("left weight: {}", left.weight);
             if let Some(c) = left.character {
                 println!("left: {}", c);
             }
-            println!("right left: {}", right.weight);
+            println!("right weight: {}", right.weight);
             if let Some(c) = right.character {
                 println!("right: {}", c);
             }
