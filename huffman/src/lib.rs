@@ -31,7 +31,7 @@ pub fn run(filename: String) -> Result<(), Box<dyn Error>> {
 
     let mut nodes = Vec::new();
     for (key, value) in map {
-        nodes.push(Node::new(key, value));
+        nodes.push(Box::new(Node::new(key, value)));
     }
 
     while nodes.len() > 1 {
@@ -41,47 +41,66 @@ pub fn run(filename: String) -> Result<(), Box<dyn Error>> {
             let right = nodes.remove(0);
             let weight = left.weight + right.weight;
 
-            println!("weight: {}", weight);
-            println!("left weight: {}", left.weight);
-            if let Some(c) = left.character {
-                println!("left: {}", c);
-            }
-            println!("right weight: {}", right.weight);
-            if let Some(c) = right.character {
-                println!("right: {}", c);
-            }
-
-            let left = Some(Box::new(left));
-            let right = Some(Box::new(right));
+            let left = Some(left);
+            let right = Some(right);
             let root = Node {
                 character: None,
                 weight,
                 left,
                 right,
             };
-            nodes.push(root);
+            nodes.push(Box::new(root));
         }
     }
 
-    //let root = &nodes[0];
-    //check_tree(root);
+    let root = nodes.get(0);
+    let mut table: HashMap<char, String> = HashMap::new();
+    let mut encoded_file = String::new();
+    for character in file_content.chars() {
+        if let Some(c) = table.get(&character) {
+            encoded_file.push_str(c);
+            continue;
+        }
+        // Traverse tree to find the code for the given character
+        let mut code = String::new();
+        build_character_code(root, &character, &mut code);
+        println!("{}: {}", character, code);
+        encoded_file.push_str(&code);
+        table.insert(character, code);
+    }
+
+    println!("{}", encoded_file);
 
     Ok(())
 }
 
-fn check_tree(root: &Node) {
-    let weight = root.weight;
-    let right = &root.right;
-    let left = &root.left;
-    println!("weight: {}", weight);
-    if let Some(n) = left {
-        if let Some(c) = n.character {
-            println!("left: {}", c);
+// TODO Refactor
+fn build_character_code<'a>(
+    root: Option<&Box<Node>>,
+    character: &'a char,
+    code: &mut String,
+) -> Option<&'a char> {
+    if let Some(node) = root {
+        match node.character {
+            Some(c) => {
+                if c == *character {
+                    return Some(character);
+                } else {
+                    return None;
+                }
+            }
+            None => {
+                if let Some(_) = build_character_code(node.left.as_ref(), character, code) {
+                    code.push('0');
+                    return Some(character);
+                }
+
+                if let Some(_) = build_character_code(node.right.as_ref(), character, code) {
+                    code.push('1');
+                    return Some(character);
+                }
+            }
         }
     }
-    if let Some(n) = right {
-        if let Some(c) = n.character {
-            println!("right: {}", c);
-        }
-    }
+    None
 }
