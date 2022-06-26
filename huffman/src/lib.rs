@@ -1,14 +1,14 @@
 use std::{collections::HashMap, error::Error, fs};
 
-struct Node<'a> {
+struct Node {
     character: Option<char>,
     weight: u32,
-    left: Option<&'a Node<'a>>,
-    right: Option<&'a Node<'a>>,
+    left: Option<Box<Node>>,
+    right: Option<Box<Node>>,
 }
 
-impl<'a> Node<'a> {
-    fn new(character: char, weight: u32) -> Node<'a> {
+impl Node {
+    fn new(character: char, weight: u32) -> Node {
         Node {
             character: Some(character),
             weight,
@@ -34,9 +34,6 @@ pub fn run(filename: String) -> Result<(), Box<dyn Error>> {
         nodes.push(Node::new(key, value));
     }
 
-    // nodes.sort_by(|a, b| a.weight.cmp(&b.weight));
-    // nodes.reverse();
-
     while nodes.len() > 1 {
         nodes.sort_by(|a, b| a.weight.cmp(&b.weight));
         if nodes.len() >= 2 {
@@ -44,8 +41,8 @@ pub fn run(filename: String) -> Result<(), Box<dyn Error>> {
             let right = nodes.remove(0);
             let weight = left.weight + right.weight;
 
-            let left = Some(left);
-            let right = Some(right);
+            let left = Some(Box::new(left));
+            let right = Some(Box::new(right));
             let root = Node {
                 character: None,
                 weight,
@@ -53,45 +50,28 @@ pub fn run(filename: String) -> Result<(), Box<dyn Error>> {
                 right,
             };
             nodes.push(root);
-        } else {
         }
-        //let left = nodes.get(0);
-        //let right = nodes.get(1);
-
-        //let left_weight = match left {
-        //    Some(node) => node.weight,
-        //    None => 0,
-        //};
-        //let right_weight = match right {
-        //    Some(node) => node.weight,
-        //    None => 0,
-        //};
-        //let root = Node {
-        //    character: None,
-        //    weight: left_weight + right_weight,
-        //    left,
-        //    right,
-        //};
-        //nodes.push(root);
-
-        //// There will always be one element to be removed.
-        ////nodes.remove(0);
-        ////if nodes.len() > 1 {
-        ////    nodes.remove(0);
-        ////}
-        //nodes.push(root);
-
-        // nodes.sort_by(|a, b| a.weight.cmp(&b.weight));
     }
 
-    // for node in nodes.iter() {
-    //     match node.character {
-    //         Some(character) => println!("{} {}", character, node.weight),
-    //         None => println!("None"),
-    //     }
-    // }
-
-    //while !nodes.is_empty() {}
+    let root = &nodes[0];
+    check_tree(root);
 
     Ok(())
+}
+
+fn check_tree(root: &Node) {
+    let weight = root.weight;
+    let right = &root.right;
+    let left = &root.left;
+    println!("weight: {}", weight);
+    if let Some(n) = left {
+        if let Some(c) = n.character {
+            println!("left: {}", c);
+        }
+    }
+    if let Some(n) = right {
+        if let Some(c) = n.character {
+            println!("right: {}", c);
+        }
+    }
 }
