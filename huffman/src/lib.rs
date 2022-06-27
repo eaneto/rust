@@ -23,7 +23,7 @@ impl Node {
     }
 }
 
-pub fn run(filename: &String) -> Result<(), Box<dyn Error>> {
+pub fn run(filename: &str) -> Result<(), Box<dyn Error>> {
     let file_content = fs::read_to_string(filename)?;
 
     let mut map = HashMap::new();
@@ -61,7 +61,7 @@ pub fn run(filename: &String) -> Result<(), Box<dyn Error>> {
     let root = nodes.get(0);
     let mut table: HashMap<char, Vec<u8>> = HashMap::new();
     for character in file_content.chars() {
-        if let Some(_) = table.get(&character) {
+        if table.contains_key(&character) {
             continue;
         }
         // Traverse tree to find the code for the given character
@@ -82,7 +82,7 @@ pub fn run(filename: &String) -> Result<(), Box<dyn Error>> {
     let mut compressed_file = File::create(format!("{}.huff", filename))?;
 
     for vec in encoded_file {
-        if let Err(e) = compressed_file.write(&vec) {
+        if let Err(e) = compressed_file.write(vec) {
             panic!("Error writing to compressed file: {}", e);
         }
     }
@@ -106,12 +106,12 @@ fn build_character_code<'a>(
                 }
             }
             None => {
-                if let Some(_) = build_character_code(node.left.as_ref(), character, code) {
+                if build_character_code(node.left.as_ref(), character, code).is_some() {
                     code.push(0);
                     return Some(character);
                 }
 
-                if let Some(_) = build_character_code(node.right.as_ref(), character, code) {
+                if build_character_code(node.right.as_ref(), character, code).is_some() {
                     code.push(1);
                     return Some(character);
                 }
