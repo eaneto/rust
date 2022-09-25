@@ -11,15 +11,9 @@ use web_server::ThreadPool;
 fn main() {
     // TODO: Handle error
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
-    let pool = match ThreadPool::new(8) {
-        Ok(pool) => pool,
-        Err(_) => {
-            panic!("Invalid number of threads for the thread pool.");
-        }
-    };
+    let pool = ThreadPool::new(8);
 
     for stream in listener.incoming() {
-        // TODO: Handle error
         let stream = stream.unwrap();
         pool.execute(|| {
             handle_connection(stream);
