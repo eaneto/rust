@@ -7,7 +7,7 @@ type Job = Box<dyn FnOnce() + Send + 'static>;
 
 struct Worker {
     id: usize,
-    thread: Option<thread::JoinHandle<()>>,
+    thread: thread::JoinHandle<()>,
 }
 
 impl Worker {
@@ -15,27 +15,17 @@ impl Worker {
         // TODO: replace thread::spawn with https://doc.rust-lang.org/std/thread/struct.Builder.html
         let thread = thread::spawn(move || loop {
             // TODO: Handler errors
-            match receiver.lock().unwrap().recv() {
-                Ok(job) => {
-                    println!("Worker {id} got a job; executing.");
-                    job();
-                }
-                Err(_) => {
-                    println!("Worker {id} disconnected; shutting down.");
-                    break;
-                }
-            }
+            let job = receiver.lock().unwrap().recv().unwrap();
+            println!("Worker {id} got a job; executing.");
+            job();
         });
-        Worker {
-            id,
-            thread: Some(thread),
-        }
+        Worker { id, thread }
     }
 }
 
 pub struct ThreadPool {
     workers: Vec<Worker>,
-    sender: Option<mpsc::Sender<Job>>,
+    sender: mpsc::Sender<Job>,
 }
 
 impl ThreadPool {
@@ -58,10 +48,7 @@ impl ThreadPool {
             workers.push(Worker::new(id, Arc::clone(&receiver)))
         }
 
-        ThreadPool {
-            workers,
-            sender: Some(sender),
-        }
+        ThreadPool { workers, sender }
     }
 
     // TODO:
@@ -73,19 +60,6 @@ impl ThreadPool {
     {
         let job = Box::new(f);
         // TODO: Handle error
-        self.sender.as_ref().unwrap().send(job).unwrap();
-    }
-}
-
-impl Drop for ThreadPool {
-    fn drop(&mut self) {
-        drop(self.sender.take());
-
-        for worker in &mut self.workers {
-            println!("Shutting down worker {}", worker.id);
-            if let Some(thread) = worker.thread.take() {
-                thread.join().unwrap();
-            }
-        }
+        self.sender.send(job).unwrap();
     }
 }
