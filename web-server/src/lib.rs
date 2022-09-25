@@ -33,6 +33,9 @@ impl Worker {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub struct PoolCreationError;
+
 pub struct ThreadPool {
     workers: Vec<Worker>,
     sender: Option<mpsc::Sender<Job>>,
@@ -41,13 +44,22 @@ pub struct ThreadPool {
 impl ThreadPool {
     /// Create a new ThreadPool.
     ///
-    /// The size is the number of threads in the pool.
+    /// The size is the number of threads in the pool. If the size is
+    /// zero a [`PoolCreationError`] is returned.
     ///
-    /// # Panics
+    /// # Examples
     ///
-    /// The `new` function will panic if the size is zero.
-    pub fn new(size: usize) -> ThreadPool {
-        assert!(size > 0);
+    /// ```
+    /// use web_server::ThreadPool;
+    ///
+    /// let pool = ThreadPool::new(0);
+    ///
+    /// assert_eq!(pool.is_ok(), false);
+    /// ```
+    pub fn new(size: usize) -> Result<ThreadPool, PoolCreationError> {
+        if size == 0 {
+            return Err(PoolCreationError);
+        }
 
         let (sender, receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));
@@ -58,14 +70,11 @@ impl ThreadPool {
             workers.push(Worker::new(id, Arc::clone(&receiver)))
         }
 
-        ThreadPool {
+        Ok(ThreadPool {
             workers,
             sender: Some(sender),
-        }
+        })
     }
-
-    // TODO:
-    // pub fn build(size: usize) -> Result<ThreadPool, PoolCreationError>
 
     pub fn execute<F>(&self, f: F)
     where
@@ -86,6 +95,27 @@ impl Drop for ThreadPool {
             if let Some(thread) = worker.thread.take() {
                 thread.join().unwrap();
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn build_thread_pool_with_zero_threads() {
+        let result = ThreadPool::new(0);
+        assert_eq!(result.err(), Some(PoolCreationError));
+    }
+
+    #[test]
+    fn build_thread_pool_with_two_threads() {
+        let result = ThreadPool::new(2);
+        assert_eq!(result.is_ok(), true);
+        if let Ok(pool) = result {
+            assert_eq!(pool.workers.len(), 2);
+            assert_eq!(pool.sender.is_some(), true);
         }
     }
 }
