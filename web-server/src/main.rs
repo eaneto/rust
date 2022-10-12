@@ -13,9 +13,7 @@ fn main() {
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
     let pool = match ThreadPool::new(8) {
         Ok(pool) => pool,
-        Err(_) => {
-            panic!("Invalid number of threads for the thread pool.");
-        }
+        Err(_) => panic!("Invalid number of threads for the thread pool."),
     };
 
     for stream in listener.incoming() {
