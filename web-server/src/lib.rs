@@ -12,13 +12,15 @@ struct Worker {
 
 impl Worker {
     fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
-        // TODO: replace thread::spawn with https://doc.rust-lang.org/std/thread/struct.Builder.html
-        let thread = thread::spawn(move || loop {
-            // TODO: Handler errors
-            let job = receiver.lock().unwrap().recv().unwrap();
-            println!("Worker {id} got a job; executing.");
-            job();
-        });
+        let thread = thread::Builder::new()
+            .name(format!("web-server-{}", id))
+            .spawn(move || loop {
+                // TODO: Handler errors
+                let job = receiver.lock().unwrap().recv().unwrap();
+                println!("Worker {id} got a job; executing.");
+                job();
+            })
+            .unwrap();
         Worker { id, thread }
     }
 }
@@ -78,6 +80,15 @@ impl ThreadPool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn build_worker() {
+        let (_, receiver) = mpsc::channel();
+        let receiver = Arc::new(Mutex::new(receiver));
+
+        let worker = Worker::new(1, Arc::clone(&receiver));
+        assert_eq!(worker.id, 1);
+    }
 
     #[test]
     fn build_thread_pool_with_zero_threads() {
