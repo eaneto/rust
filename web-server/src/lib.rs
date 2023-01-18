@@ -1,5 +1,8 @@
 use std::{
-    sync::{mpsc, Arc, Mutex},
+    sync::{
+        mpsc::{self, SendError},
+        Arc, Mutex,
+    },
     thread,
 };
 
@@ -15,7 +18,6 @@ impl Worker {
         let thread = thread::Builder::new()
             .name(format!("web-server-{}", id))
             .spawn(move || loop {
-                // TODO: Handler errors
                 let job = receiver.lock().unwrap().recv().unwrap();
                 println!("Worker {id} got a job; executing.");
                 job();
@@ -27,6 +29,9 @@ impl Worker {
 
 #[derive(Debug, PartialEq)]
 pub struct PoolCreationError;
+
+#[derive(Debug, PartialEq)]
+pub struct PoolExecutionError;
 
 pub struct ThreadPool {
     workers: Vec<Worker>,
@@ -64,13 +69,15 @@ impl ThreadPool {
         Ok(ThreadPool { workers, sender })
     }
 
-    pub fn execute<F>(&self, f: F)
+    pub fn execute<F>(&self, f: F) -> Result<(), PoolExecutionError>
     where
         F: FnOnce() + Send + 'static,
     {
         let job = Box::new(f);
-        // TODO: Handle error
-        self.sender.send(job).unwrap();
+        return match self.sender.send(job) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(PoolExecutionError),
+        };
     }
 }
 
