@@ -9,16 +9,20 @@ use std::{
 use web_server::ThreadPool;
 
 fn main() {
-    // TODO: Handle error
-    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let listener = match TcpListener::bind("127.0.0.1:7878") {
+        Ok(listener) => listener,
+        Err(_) => panic!("Unable to bind port 7878"),
+    };
     let pool = match ThreadPool::new(8) {
         Ok(pool) => pool,
         Err(_) => panic!("Invalid number of threads for the thread pool."),
     };
 
     for stream in listener.incoming() {
-        // TODO: Handle error
-        let stream = stream.unwrap();
+        let stream = match stream {
+            Ok(stream) => stream,
+            Err(_) => continue,
+        };
         pool.execute(|| {
             handle_connection(stream);
         });

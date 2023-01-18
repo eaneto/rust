@@ -64,9 +64,6 @@ impl ThreadPool {
         Ok(ThreadPool { workers, sender })
     }
 
-    // TODO:
-    // pub fn build(size: usize) -> Result<ThreadPool, PoolCreationError>
-
     pub fn execute<F>(&self, f: F)
     where
         F: FnOnce() + Send + 'static,
