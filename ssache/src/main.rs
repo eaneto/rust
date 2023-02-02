@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Write},
     net::TcpListener,
 };
 
@@ -62,14 +62,26 @@ fn main() {
         // TODO Return data to the client
         match command {
             Command::Get { key } => match database.get(&key) {
-                Some(value) => println!("found {}", value),
-                None => println!("not found"),
+                Some(value) => {
+                    println!("found {}", value);
+                    let response = format!("OK\r\n{value}\r\n");
+                    stream.write_all(response.as_bytes()).unwrap();
+                }
+                None => {
+                    println!("not found");
+                    let response = format!("OK\r\n");
+                    stream.write_all(response.as_bytes()).unwrap();
+                }
             },
             Command::Set { key, value } => {
                 database.insert(key, value);
+                let response = format!("OK\r\n");
+                stream.write_all(response.as_bytes()).unwrap();
             }
             Command::Unknown => {
                 println!("Unknown command");
+                let response = format!("ERROR unknown command\r\n");
+                stream.write_all(response.as_bytes()).unwrap();
             }
         }
     }
