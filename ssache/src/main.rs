@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     io::{BufRead, BufReader, Write},
-    net::TcpListener,
+    net::{TcpListener, TcpStream},
 };
 
 use log::debug;
@@ -21,82 +21,108 @@ fn main() {
         Err(e) => panic!("Unable to start ssache on port 7777. Error = {:?}", e),
     };
 
-    let mut database = HashMap::new();
+    let mut database: HashMap<String, String> = HashMap::new();
 
     for stream in listener.incoming() {
-        let mut stream = match stream {
+        let stream = match stream {
             Ok(stream) => stream,
             Err(_) => continue,
         };
 
-        let buf_reader = BufReader::new(&mut stream);
-        let command_line = buf_reader.lines().next().unwrap().unwrap();
-        let command_line = command_line.split_whitespace();
-        let command_line: Vec<&str> = command_line.collect();
-        let command = match command_line.get(0) {
-            Some(command) => command,
-            None => continue,
-        };
+        if let Err(_) = handle_connection(stream, &mut database) {
+            continue;
+        }
+    }
+}
 
-        // TODO Respond to client error for not enough parameters
-        let command = if command.eq(&String::from("GET")) {
-            let key = match command_line.get(1) {
-                Some(key) => key,
-                None => {
-                    debug!("not enough parameters for GET command");
-                    continue;
-                }
-            };
-            Command::Get {
-                key: key.to_string(),
-            }
-        } else if command.eq(&String::from("SET")) {
-            let key = match command_line.get(1) {
-                Some(key) => key,
-                None => {
-                    debug!("not enough parameters for SET command");
-                    continue;
-                }
-            };
-            let value = match command_line.get(2) {
-                Some(value) => value,
-                None => {
-                    debug!("not enough parameters for SET command");
-                    continue;
-                }
-            };
-            Command::Set {
-                key: key.to_string(),
-                value: value.to_string(),
-            }
-        } else {
-            Command::Unknown
-        };
+#[derive(Debug, Clone)]
+struct NotEnoughParametersError;
 
-        match command {
-            Command::Get { key } => match database.get(&key) {
-                Some(value) => {
-                    debug!("found {:?} for {:?}", value, key);
-                    let response = format!("OK\r\n{value}\r\n");
-                    stream.write_all(response.as_bytes()).unwrap();
-                }
-                None => {
-                    debug!("value not found for {:?}", key);
-                    let response = format!("OK\r\n");
-                    stream.write_all(response.as_bytes()).unwrap();
-                }
-            },
-            Command::Set { key, value } => {
-                database.insert(key, value);
-                debug!("value successfully set");
+// TODO Rename this error
+#[derive(Debug, Clone)]
+struct ConnectionError;
+
+fn handle_connection(
+    mut stream: TcpStream,
+    database: &mut HashMap<String, String>,
+) -> Result<(), ConnectionError> {
+    let buf_reader = BufReader::new(&mut stream);
+    let command_line = buf_reader.lines().next().unwrap().unwrap();
+    let command_line = command_line.split_whitespace();
+    let command_line: Vec<&str> = command_line.collect();
+    if command_line.get(0).is_none() {
+        return Err(ConnectionError);
+    }
+
+    let command = command_line.get(0).unwrap();
+    let command = parse_command(command, command_line, &mut stream);
+
+    if let Err(_) = command {
+        return Err(ConnectionError);
+    }
+
+    let command = command.unwrap();
+
+    match command {
+        Command::Get { key } => match database.get(&key) {
+            Some(value) => {
+                debug!("found {:?} for {:?}", value, key);
+                let response = format!("OK\r\n{value}\r\n");
+                stream.write_all(response.as_bytes()).unwrap();
+                Ok(())
+            }
+            None => {
+                debug!("value not found for {:?}", key);
                 let response = format!("OK\r\n");
                 stream.write_all(response.as_bytes()).unwrap();
+                Ok(())
             }
-            Command::Unknown => {
-                debug!("Unknown command");
-                let response = format!("ERROR unknown command\r\n");
-                stream.write_all(response.as_bytes()).unwrap();
-            }
+        },
+        Command::Set { key, value } => {
+            database.insert(key, value);
+            debug!("value successfully set");
+            let response = format!("OK\r\n");
+            stream.write_all(response.as_bytes()).unwrap();
+            Ok(())
         }
+        Command::Unknown => {
+            debug!("Unknown command");
+            let response = format!("ERROR unknown command\r\n");
+            stream.write_all(response.as_bytes()).unwrap();
+            Ok(())
+        }
+    }
+}
+
+fn parse_command(
+    command: &str,
+    command_line: Vec<&str>,
+    stream: &mut TcpStream,
+) -> Result<Command, NotEnoughParametersError> {
+    if command.eq(&String::from("GET")) {
+        if let Some(key) = command_line.get(1) {
+            Ok(Command::Get {
+                key: key.to_string(),
+            })
+        } else {
+            debug!("not enough parameters for GET command");
+            let response = format!("ERROR not enough parameters for GET\r\n");
+            stream.write_all(response.as_bytes()).unwrap();
+            Err(NotEnoughParametersError)
+        }
+    } else if command.eq(&String::from("SET")) {
+        if let (Some(key), Some(value)) = (command_line.get(1), command_line.get(2)) {
+            Ok(Command::Set {
+                key: key.to_string(),
+                value: value.to_string(),
+            })
+        } else {
+            debug!("not enough parameters for SET command");
+            let response = format!("ERROR not enough parameters for SET\r\n");
+            stream.write_all(response.as_bytes()).unwrap();
+            Err(NotEnoughParametersError)
+        }
+    } else {
+        Ok(Command::Unknown)
     }
 }
