@@ -4,6 +4,8 @@ use std::{
     net::TcpListener,
 };
 
+use log::debug;
+
 enum Command {
     // GET key
     Get { key: String },
@@ -12,6 +14,8 @@ enum Command {
     Unknown,
 }
 fn main() {
+    env_logger::init();
+
     let listener = match TcpListener::bind("127.0.0.1:7777") {
         Ok(listener) => listener,
         Err(e) => panic!("Unable to start ssache on port 7777. Error = {:?}", e),
@@ -33,10 +37,15 @@ fn main() {
             Some(command) => command,
             None => continue,
         };
+
+        // TODO Respond to client error for not enough parameters
         let command = if command.eq(&String::from("GET")) {
             let key = match command_line.get(1) {
                 Some(key) => key,
-                None => continue,
+                None => {
+                    debug!("not enough parameters for GET command");
+                    continue;
+                }
             };
             Command::Get {
                 key: key.to_string(),
@@ -44,11 +53,17 @@ fn main() {
         } else if command.eq(&String::from("SET")) {
             let key = match command_line.get(1) {
                 Some(key) => key,
-                None => continue,
+                None => {
+                    debug!("not enough parameters for SET command");
+                    continue;
+                }
             };
             let value = match command_line.get(2) {
                 Some(value) => value,
-                None => continue,
+                None => {
+                    debug!("not enough parameters for SET command");
+                    continue;
+                }
             };
             Command::Set {
                 key: key.to_string(),
@@ -58,28 +73,27 @@ fn main() {
             Command::Unknown
         };
 
-        // TODO Add logging
-        // TODO Return data to the client
         match command {
             Command::Get { key } => match database.get(&key) {
                 Some(value) => {
-                    println!("found {}", value);
+                    debug!("found {:?} for {:?}", value, key);
                     let response = format!("OK\r\n{value}\r\n");
                     stream.write_all(response.as_bytes()).unwrap();
                 }
                 None => {
-                    println!("not found");
+                    debug!("value not found for {:?}", key);
                     let response = format!("OK\r\n");
                     stream.write_all(response.as_bytes()).unwrap();
                 }
             },
             Command::Set { key, value } => {
                 database.insert(key, value);
+                debug!("value successfully set");
                 let response = format!("OK\r\n");
                 stream.write_all(response.as_bytes()).unwrap();
             }
             Command::Unknown => {
-                println!("Unknown command");
+                debug!("Unknown command");
                 let response = format!("ERROR unknown command\r\n");
                 stream.write_all(response.as_bytes()).unwrap();
             }
