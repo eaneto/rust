@@ -6,6 +6,7 @@ use std::{
 
 use log::debug;
 
+// TODO: Add QUIT
 enum Command {
     // GET key
     Get { key: String },
@@ -26,6 +27,8 @@ fn main() {
 
     let mut database: HashMap<String, String> = HashMap::new();
 
+    // TODO Keep connection open with client.
+    // TODO Create thread pool and handle connections on pool.
     for stream in listener.incoming() {
         let stream = match stream {
             Ok(stream) => stream,
