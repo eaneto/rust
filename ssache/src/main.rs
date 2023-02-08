@@ -2,9 +2,11 @@ use std::{
     collections::HashMap,
     io::{BufRead, BufReader, Write},
     net::{TcpListener, TcpStream},
+    sync::{Arc, Mutex},
 };
 
-use log::debug;
+use log::{debug, info, warn};
+use ssache::ThreadPool;
 
 // TODO: Add QUIT
 enum Command {
@@ -20,12 +22,21 @@ const CRLF: &str = "\r\n";
 fn main() {
     env_logger::init();
 
+    info!("Ssache is starting");
+
     let listener = match TcpListener::bind("127.0.0.1:7777") {
         Ok(listener) => listener,
         Err(e) => panic!("Unable to start ssache on port 7777. Error = {:?}", e),
     };
 
-    let mut database: HashMap<String, String> = HashMap::new();
+    let pool = match ThreadPool::new(8) {
+        Ok(pool) => pool,
+        Err(_) => panic!("Invalid number of threads for the thread pool."),
+    };
+
+    info!("Ssache is ready to accept connections");
+
+    let database: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
 
     // TODO Keep connection open with client.
     // TODO Create thread pool and handle connections on pool.
@@ -35,9 +46,12 @@ fn main() {
             Err(_) => continue,
         };
 
-        if let Err(_) = handle_connection(stream, &mut database) {
-            continue;
-        }
+        let database_clone = database.clone();
+        pool.execute(move || {
+            if let Err(_) = handle_connection(stream, database_clone) {
+                warn!("Error executing tcp stream");
+            };
+        });
     }
 }
 
@@ -48,9 +62,10 @@ struct NotEnoughParametersError;
 #[derive(Debug, Clone)]
 struct ConnectionError;
 
+// TODO Add integration tests
 fn handle_connection(
     mut stream: TcpStream,
-    database: &mut HashMap<String, String>,
+    database: Arc<Mutex<HashMap<String, String>>>,
 ) -> Result<(), ConnectionError> {
     let buf_reader = BufReader::new(&mut stream);
     let command_line = buf_reader.lines().next().unwrap().unwrap();
@@ -69,6 +84,7 @@ fn handle_connection(
 
     let command = command.unwrap();
 
+    let mut database = database.lock().unwrap();
     match command {
         Command::Get { key } => match database.get(&key) {
             Some(value) => {
