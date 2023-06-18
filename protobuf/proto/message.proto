@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package example.message;
+
+import "google/protobuf/timestamp.proto";
+
+message Message {
+    uint64 id = 1;
+    string log_name = 2;
+    uint64 partition = 3;
+    bytes data = 4;
+    google.protobuf.Timestamp timestamp = 5;
+}
